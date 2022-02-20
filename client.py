@@ -2,7 +2,6 @@ import sys
 import asyncio
 
 from .utils.logger import get_logger
-from .utils.functions import get_reversed_id
 from .utils.constants import ERROR_EXIT_CODE
 
 
@@ -17,7 +16,7 @@ class AIOClient:
 
         self._logger = get_logger(
             name=self.__class__.__name__.lower(),
-            suffix=get_reversed_id(self)
+            suffix=str(id(self))
         )
         self._logger.debug(f'{self.__repr__()} has been initialized.')
 
@@ -59,3 +58,6 @@ class AIOClient:
                 (f'Connection to the address ({self.host}, {self.port})'
                  ' has been closed.')
             )
+
+    def __repr__(self):
+        return f'<AIOClient({self.host}, {self.port}) object at {id(self)}>'
