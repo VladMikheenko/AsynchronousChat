@@ -20,11 +20,23 @@ class AIOServer:
         )
         self._logger.debug(f'{self.__repr__()} has been initialized.')
 
-    async def start_server(self) -> None:
-        await asyncio.start_server(self._serve, self.host, self.port)
+    async def start_server(self) -> asyncio.base_events.Server:
+        return await asyncio.start_server(self._serve, self.host, self.port)
 
-    async def terminate_server(self) -> None:
-        pass
+    async def close_server(
+        self,
+        server: asyncio.base_events.Server
+    ) -> None:
+        try:
+            server.close()
+            await server.wait_closed()
+        except OSError:
+            self._logger.error(
+                'An error occured while closing server:\n',
+                exc_info=True
+            )
+        else:
+            self._logger.info('Server has been closed.')
 
     async def _serve(
         self,
