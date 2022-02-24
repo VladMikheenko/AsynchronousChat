@@ -12,13 +12,16 @@ def test_aioserver_can_be_created_with_custom_arguments():
 
 
 async def test_aioserver_can_be_run():
+    aioserver = AIOServer()
     assert (
-        await AIOServer().start_server()
+        (await aioserver.start_server()) is None
     ), 'AIOServer\'s instance async method `start_server` does not work.'
+    await aioserver.close_server()
 
 
 async def test_aioserver_can_be_stopped():
     aioserver = AIOServer()
-    await aioserver.close_server(await aioserver.start_server())
-    assert not server.is_serving(), \
+    await aioserver.start_server()
+    await aioserver.close_server()
+    assert not aioserver._asyncio_server, \
         'AIOServer\'s instance async method `close_server` does not work.'

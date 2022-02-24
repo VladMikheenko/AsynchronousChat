@@ -1,18 +1,22 @@
+import sys
 import asyncio
 from typing import Union
 
 from .utils.logger import get_logger
-from .utils.constants import ERROR_EXIT_CODE
+from .utils.constants import (
+    ERROR_EXIT_CODE, DEFAULT_SERVER_HOST, DEFAULT_SERVER_PORT
+)
 
 
 class AIOServer:
     def __init__(
         self,
-        host: str = 'localhost',
-        port: int = 54321,
+        host: str = DEFAULT_SERVER_HOST,
+        port: int = DEFAULT_SERVER_PORT,
     ) -> None:
         self.host = host
         self.port = port
+        self._asyncio_server: Optional[asyncio.base_events.Server] = None
 
         self._logger = get_logger(
             name=self.__class__.__name__.lower(),
@@ -20,16 +24,31 @@ class AIOServer:
         )
         self._logger.debug(f'{self.__repr__()} has been initialized.')
 
-    async def start_server(self) -> asyncio.base_events.Server:
-        return await asyncio.start_server(self._serve, self.host, self.port)
-
-    async def close_server(
-        self,
-        server: asyncio.base_events.Server
-    ) -> None:
+    async def start_server(self) -> None:
         try:
-            server.close()
-            await server.wait_closed()
+            self._asyncio_server = (
+                await asyncio.start_server(self._serve, self.host, self.port)
+            )
+        except OSError:
+            self._logger.error(
+                'An error occured while starting server:\n',
+                exc_info=True
+            )
+            sys.exit(ERROR_EXIT_CODE)
+        else:
+            self._logger.info('Server has been started.')
+
+    async def close_server(self) -> None:
+        try:
+            if not self._asyncio_server:
+                logger.warning(
+                    'An attempt to close not existing server has been made.'
+                )
+                return
+
+            self._asyncio_server.close()
+            await self._asyncio_server.wait_closed()
+            self._asyncio_server = None
         except OSError:
             self._logger.error(
                 'An error occured while closing server:\n',
@@ -55,7 +74,7 @@ class AIOServer:
             data = await self._read_data(reader)
 
             if not data:
-                self._logger.info(f'{client_ip_address} has disconnected.')
+                self._logger.info(f'{client_ip_address} has sent EOF.')
                 await self._close_client_connection(writer, client_ip_address)
                 # As there is no more connection between client <-> server,
                 # Just gracefully terminate coroutine returning None.
@@ -97,6 +116,9 @@ class AIOServer:
         writer: asyncio.StreamWriter
     ) -> None:
         try:
+            writer.write(b'Sorry, server count not identify your IP.')
+            await writer.drain()
+
             writer.close()
             await writer.wait_closed()
         except OSError:
