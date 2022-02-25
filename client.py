@@ -2,25 +2,49 @@ import sys
 import asyncio
 
 from .utils.logger import get_logger
-from .utils.constants import ERROR_EXIT_CODE
+from .utils.constants import (
+    ERROR_EXIT_CODE,
+    DEFAULT_HOST,
+    DEFAULT_PORT,
+    DEFAULT_BATCH_SIZE,
+    DEFAULT_ENCODING
+)
 
 
 class AIOClient:
     def __init__(
         self,
-        host: str = 'localhost',
-        port: int = 54321,
+        host: str = DEFAULT_SERVER_HOST,
+        port: int = DEFAULT_SERVER_PORT,
     ) -> None:
         self.host = host
         self.port = port
 
+        self._asyncio_loop: asyncio.events.AbstractEventLoop = (
+            asyncio.get_event_loop()
+        )
         self._logger = get_logger(
             name=self.__class__.__name__.lower(),
             suffix=str(id(self))
         )
-        self._logger.debug(f'{self.__repr__()} has been initialized.')
+        self._logger.debug('%s has been initialized.', self.__repr__())
 
-    async def _open_connection(self) -> None:
+    def run(self) -> None:
+        reader, writer = self._open_connection()
+        # Error: await self._asyncio_loop.run_in_executor(None, self._read_data, reader)
+
+        while True:
+            data = input('-> ')
+            
+            if data == 'exit()':
+                self._close_connection(writer)
+                return
+
+            self._write_data(data)
+
+    async def _open_connection(
+        self
+    ) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
         try:
             reader, writer = await asyncio.open_connection(
                 self.host,
@@ -58,6 +82,36 @@ class AIOClient:
                 (f'Connection to the address ({self.host}, {self.port})'
                  ' has been closed.')
             )
+
+    async def _write_data(self, writer: asyncio.StreamWriter, data: str) -> None:
+        try:
+            writer.write(data.encode(encoding=DEFAULT_ENCODING))
+            await writer.drain()
+        except OSError:
+            self._logger.error(
+                f'Error while writing data ({data}).'
+                exc_info=True
+            )
+        else:
+            self._logger.info(
+                f'Data has been sent successfully: {data}.'
+            )
+
+    async def _read_data(self, reader: asyncio.StreamReader) -> None:
+        while True:
+            try:
+                data = await reader.read(DEFAULT_BATCH_SIZE)
+                data.decode(encoding=DEFAULT_ENCODING)
+                print(data)
+            except OSError:
+                self._logger.error(
+                    f'Error while reading data from remote host.'
+                    exc_info=True
+                )
+            else:
+                self._logger.info(
+                    f'Data has been received successfully: {data}.'
+                )
 
     def __repr__(self):
         return f'<AIOClient({self.host}, {self.port}) object at {id(self)}>'

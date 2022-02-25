@@ -4,7 +4,7 @@ from typing import Union
 
 from .utils.logger import get_logger
 from .utils.constants import (
-    ERROR_EXIT_CODE, DEFAULT_SERVER_HOST, DEFAULT_SERVER_PORT
+    ERROR_EXIT_CODE, DEFAULT_HOST, DEFAULT_PORT
 )
 
 
@@ -117,8 +117,11 @@ class AIOServer:
     ) -> None:
         try:
             writer.write(b'Sorry, server count not identify your IP.')
-            await writer.drain()
 
+            if writer.can_write_eof():
+                write.write_eof()
+
+            await writer.drain()
             writer.close()
             await writer.wait_closed()
         except OSError:
