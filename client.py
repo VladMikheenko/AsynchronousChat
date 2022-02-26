@@ -1,5 +1,6 @@
 import sys
 import asyncio
+import threading
 
 from .utils.logger import get_logger
 from .utils.constants import (
@@ -31,7 +32,6 @@ class AIOClient:
 
     def run(self) -> None:
         reader, writer = self._open_connection()
-        # Error: await self._asyncio_loop.run_in_executor(None, self._read_data, reader)
 
         while True:
             data = input('-> ')

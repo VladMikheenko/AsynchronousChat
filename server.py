@@ -4,7 +4,7 @@ from typing import Union
 
 from .utils.logger import get_logger
 from .utils.constants import (
-    ERROR_EXIT_CODE, DEFAULT_HOST, DEFAULT_PORT
+    ERROR_EXIT_CODE, DEFAULT_HOST, DEFAULT_PORT, DEFAULT_ENCODING
 )
 
 
@@ -16,8 +16,9 @@ class AIOServer:
     ) -> None:
         self.host = host
         self.port = port
-        self._asyncio_server: Optional[asyncio.base_events.Server] = None
 
+        self._connected_clients: list[asyncio.StreamWriter] = []
+        self._asyncio_server: Optional[asyncio.base_events.Server] = None
         self._logger = get_logger(
             name=self.__class__.__name__.lower(),
             suffix=str(id(self))
@@ -45,6 +46,11 @@ class AIOServer:
                     'An attempt to close not existing server has been made.'
                 )
                 return
+            if self._asyncio_server.is_closing():
+                logger.warning(
+                    'Asyncio server is closing. No need to do it again.'
+                )
+                return
 
             self._asyncio_server.close()
             await self._asyncio_server.wait_closed()
@@ -68,6 +74,9 @@ class AIOServer:
             self._close_connection_to_client_on_getpeername_error(writer)
 
         client_ip_address, _ = address
+        writer.ip_address = client_ip_address
+
+        self._connected_clients.append(writer)
         self._logger.info(f'{client_ip_address} has connected.')
 
         while True:
@@ -80,11 +89,22 @@ class AIOServer:
                 # Just gracefully terminate coroutine returning None.
                 return
 
-            self._write_data(data)
+            self._broadcast(data)
+
+    async def _broadcast(
+        self, sender_writer: asyncio.StreamWriter, data: str
+    ) -> None:
+        for client_writer in self._connected_clients:
+            if client_writer is not sender_writer:
+                _ = (
+                    f'{client_writer.ip_address}:'
+                    f' {data.encode(encoding=DEFAULT_ENCODING)}'
+                )
+                self._write_data(client_writer, _)
 
     async def _write_data(
         writer: asyncio.StreamWriter,
-        data: Union[bytes, bytearray]
+        data: str
     ) -> None:
         try:
             writer.write(data)
