@@ -86,7 +86,7 @@ class AIOServer:
                 self._logger.info(f'{client_ip_address} has sent EOF.')
                 await self._close_client_connection(writer, client_ip_address)
                 # As there is no more connection between client <-> server,
-                # Just gracefully terminate coroutine returning None.
+                # Just gracefully terminate coroutine, returning None.
                 return
 
             self._broadcast(data)
