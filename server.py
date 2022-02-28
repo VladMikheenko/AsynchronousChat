@@ -164,6 +164,7 @@ class AIOServer:
         try:
             writer.close()
             await writer.wait_closed()
+            self._connected_clients.remove(writer)
         except OSError:
             self._logger.error(
                 (f'Connection to the client {client_ip_address}'
