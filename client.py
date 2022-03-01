@@ -1,6 +1,5 @@
 import sys
 import asyncio
-import threading
 
 from .utils.logger import get_logger
 from .utils.constants import (
@@ -30,18 +29,6 @@ class AIOClient:
         )
         self._logger.debug('%s has been initialized.', self.__repr__())
 
-    def run(self) -> None:
-        reader, writer = self._open_connection()
-
-        while True:
-            data = input('-> ')
-            
-            if data == 'exit()':
-                self._close_connection(writer)
-                return
-
-            self._write_data(data)
-
     async def _open_connection(
         self
     ) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
@@ -52,16 +39,16 @@ class AIOClient:
             )
         except OSError:
             self._logger.error(
-                ('Connection has not been established to the'
-                 f' address ({self.host}, {self.port})'
-                 f' due to an exception below:\n'),
+                'Connection has not been established to the address (%s, %s)'
+                ' due to an exception below:\n',
+                self.host, self.port
                 exc_info=True
             )
             sys.exit(ERROR_EXIT_CODE)
         else:
             self._logger.info(
-                ('Connection has been established to the'
-                 f' address ({self.host}, {self.port}).')
+                'Connection has been established to the address (%s, %s).',
+                self.host, self.port
             )
             return reader, writer
 
@@ -71,16 +58,16 @@ class AIOClient:
             await writer.wait_closed()
         except OSError:
             self._logger.error(
-                ('Connection has not been closed to the'
-                 f' address ({self.host}, {self.port})'
-                 f' due to an exception below:\n'),
+                'Connection has not been closed to the address (%s, %s)'
+                ' due to an exception below:\n',
+                self.host, self.port
                 exc_info=True
             )
             sys.exit(ERROR_EXIT_CODE)
         else:
             self._logger.info(
-                (f'Connection to the address ({self.host}, {self.port})'
-                 ' has been closed.')
+                'Connection to the address (%s, %s) has been closed.',
+                self.host, self.port
             )
 
     async def _write_data(self, writer: asyncio.StreamWriter, data: str) -> None:
@@ -89,29 +76,29 @@ class AIOClient:
             await writer.drain()
         except OSError:
             self._logger.error(
-                f'Error while writing data ({data}).'
+                'Error while writing data (%s) due to an exception below:\n',
+                data
                 exc_info=True
             )
         else:
             self._logger.info(
-                f'Data has been sent successfully: {data}.'
+                'Data has been sent successfully: %s.', data
             )
 
     async def _read_data(self, reader: asyncio.StreamReader) -> None:
-        while True:
-            try:
-                data = await reader.read(DEFAULT_BATCH_SIZE)
-                data.decode(encoding=DEFAULT_ENCODING)
-                print(data)
-            except OSError:
-                self._logger.error(
-                    f'Error while reading data from remote host.'
-                    exc_info=True
-                )
-            else:
-                self._logger.info(
-                    f'Data has been received successfully: {data}.'
-                )
+        try:
+            data = await reader.read(DEFAULT_BATCH_SIZE)
+        except OSError:
+            self._logger.error(
+                'Error while reading data from remote host'
+                ' due to an exception below:\n'
+                exc_info=True
+            )
+        else:
+            self._logger.info(
+                'Data has been received successfully: %s.', data
+            )
+            return data.decode(encoding=DEFAULT_ENCODING)
 
     def __repr__(self):
         return f'<AIOClient({self.host}, {self.port}) object at {id(self)}>'
