@@ -103,20 +103,32 @@ class AIOServer:
     def _broadcast(
         self, sender_writer: asyncio.StreamWriter, data: str
     ) -> None:
-        for client_writer in self._connected_clients:
-            if client_writer is not sender_writer:
-                _ = (
-                    f'{client_writer.ip_address}:'
-                    f' {data.encode(encoding=DEFAULT_ENCODING)}'
-                )
-                self._write_data(client_writer, _)
+        """Asynchronously broadcasts data in a separate thread.
+        """
+        async def __broadcast():
+            for client_writer in self._connected_clients:
+                if client_writer is not sender_writer:
+                    _ = (
+                        f'{client_writer.ip_address}:'
+                        f' {data.encode(encoding=DEFAULT_ENCODING)}'
+                    )
+                    await self._write_data(client_writer, _)
+                else:
+                    _ = f'You: {data.encode(encoding=DEFAULT_ENCODING)}'
+                    await self._write_data(sender_writer, _)
+
+        async def run():
+            task = asyncio.create_task(__broadcast())
+            await task
+
+        asyncio.run(run())
 
     async def _write_data(
         writer: asyncio.StreamWriter,
         data: str
     ) -> None:
         try:
-            writer.write(data)
+            writer.write(data.encode(encoding=DEFAULT_ENCODING))
             await writer.drain()
         except OSError:
             self._logger.error(
