@@ -1,7 +1,6 @@
 import sys
 import asyncio
 import functools
-from typing import Union
 
 from .utils.logger import get_logger
 from .utils.constants import (
@@ -91,37 +90,23 @@ class AIOServer:
                 # Just gracefully terminate coroutine, returning None.
                 return
 
-            await self._asyncio_loop.run_in_executor(
-                None,
-                functools.partial(
-                    self._broadcast,
-                    sender_writer=writer,
-                    data=data
-                )
+            task = asyncio.create_task(
+                _broadcast(sender_writer=writer, data=data)
             )
 
-    def _broadcast(
+    async def _broadcast(
         self, sender_writer: asyncio.StreamWriter, data: str
     ) -> None:
-        """Asynchronously broadcasts data in a separate thread.
-        """
-        async def __broadcast():
-            for client_writer in self._connected_clients:
-                if client_writer is not sender_writer:
-                    _ = (
-                        f'{client_writer.ip_address}:'
-                        f' {data.encode(encoding=DEFAULT_ENCODING)}'
-                    )
-                    await self._write_data(client_writer, _)
-                else:
-                    _ = f'You: {data.encode(encoding=DEFAULT_ENCODING)}'
-                    await self._write_data(sender_writer, _)
-
-        async def run():
-            task = asyncio.create_task(__broadcast())
-            await task
-
-        asyncio.run(run())
+       for client_writer in self._connected_clients:
+           if client_writer is not sender_writer:
+               _ = (
+                   f'{client_writer.ip_address}:'
+                   f' {data.encode(encoding=DEFAULT_ENCODING)}'
+               )
+               await self._write_data(client_writer, _)
+           else:
+               _ = f'You: {data.encode(encoding=DEFAULT_ENCODING)}'
+               await self._write_data(sender_writer, _)
 
     async def _write_data(
         writer: asyncio.StreamWriter,
