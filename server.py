@@ -90,23 +90,33 @@ class AIOServer:
                 # Just gracefully terminate coroutine, returning None.
                 return
 
-            task = asyncio.create_task(
-                _broadcast(sender_writer=writer, data=data)
+            asyncio.run_in_executor(
+                None,
+                functools.partial(
+                    _broadcast,
+                    sender_writer=writer,
+                    data=data
+                )
             )
 
-    async def _broadcast(
+    def _broadcast(
         self, sender_writer: asyncio.StreamWriter, data: str
     ) -> None:
-       for client_writer in self._connected_clients:
-           if client_writer is not sender_writer:
-               _ = (
-                   f'{client_writer.ip_address}:'
-                   f' {data.encode(encoding=DEFAULT_ENCODING)}'
-               )
-               await self._write_data(client_writer, _)
-           else:
-               _ = f'You: {data.encode(encoding=DEFAULT_ENCODING)}'
-               await self._write_data(sender_writer, _)
+        """Asynchronously broadcasts data from a separate thread.
+        """
+        async def __broadcast():
+            for client_writer in self._connected_clients:
+                if client_writer is not sender_writer:
+                    _ = (
+                        f'{client_writer.ip_address}:'
+                        f' {data.encode(encoding=DEFAULT_ENCODING)}'
+                    )
+                    await self._write_data(client_writer, _)
+                else:
+                    _ = f'You: {data.encode(encoding=DEFAULT_ENCODING)}'
+                    await self._write_data(sender_writer, _)
+
+        asyncio.run(__broadcast())
 
     async def _write_data(
         writer: asyncio.StreamWriter,
