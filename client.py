@@ -1,11 +1,13 @@
 import sys
 import asyncio
+import functools
+from typing import Optional
 
 from .utils.logger import get_logger
 from .utils.constants import (
     ERROR_EXIT_CODE,
-    DEFAULT_HOST,
-    DEFAULT_PORT,
+    DEFAULT_SERVER_HOST,
+    DEFAULT_SERVER_PORT,
     DEFAULT_BATCH_SIZE,
     DEFAULT_ENCODING
 )
@@ -29,9 +31,35 @@ class AIOClient:
         )
         self._logger.debug('%s has been initialized.', self.__repr__())
 
+    async def connect(self) -> None:
+        reader, writer = await self._open_connection()
+
+        self._asyncio_loop.run_in_executor(
+            None,
+            functools.partial(self._consume_data, reader=reader)
+        )
+
+        while True:
+            data = input('-> ') + '\n'
+            
+            if not data:
+                break
+
+            await self._write_data(writer=writer, data=data)
+
+        await self._close_connection(writer=writer)
+
+    def _consume_data(self, reader: asyncio.StreamReader) -> None:
+        async def __consume_data():
+            while True:
+                print(await self._read_data(reader), flush=True)
+                sys.stdout.flush()
+
+        asyncio.run(__consume_data())
+
     async def _open_connection(
         self
-    ) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+    ) -> Optional[tuple[asyncio.StreamReader, asyncio.StreamWriter]]:
         try:
             reader, writer = await asyncio.open_connection(
                 self.host,
@@ -41,7 +69,7 @@ class AIOClient:
             self._logger.error(
                 'Connection has not been established to the address (%s, %s)'
                 ' due to an exception below:\n',
-                self.host, self.port
+                self.host, self.port,
                 exc_info=True
             )
             sys.exit(ERROR_EXIT_CODE)
@@ -60,7 +88,7 @@ class AIOClient:
             self._logger.error(
                 'Connection has not been closed to the address (%s, %s)'
                 ' due to an exception below:\n',
-                self.host, self.port
+                self.host, self.port,
                 exc_info=True
             )
             sys.exit(ERROR_EXIT_CODE)
@@ -77,7 +105,7 @@ class AIOClient:
         except OSError:
             self._logger.error(
                 'Error while writing data (%s) due to an exception below:\n',
-                data
+                data,
                 exc_info=True
             )
         else:
@@ -85,13 +113,13 @@ class AIOClient:
                 'Data has been sent successfully: %s.', data
             )
 
-    async def _read_data(self, reader: asyncio.StreamReader) -> None:
+    async def _read_data(self, reader: asyncio.StreamReader) -> Optional[str]:
         try:
             data = await reader.read(DEFAULT_BATCH_SIZE)
         except OSError:
             self._logger.error(
                 'Error while reading data from remote host'
-                ' due to an exception below:\n'
+                ' due to an exception below:\n',
                 exc_info=True
             )
         else:
@@ -102,3 +130,8 @@ class AIOClient:
 
     def __repr__(self):
         return f'<AIOClient({self.host}, {self.port}) object at {id(self)}>'
+
+
+if __name__ == '__main__':
+    aioclient = AIOClient()
+    asyncio.run(aioclient.connect())

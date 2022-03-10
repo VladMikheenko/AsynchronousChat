@@ -19,6 +19,9 @@ class AIOServer:
 
         self._connected_clients: list[asyncio.StreamWriter] = []
         self._asyncio_server: Optional[asyncio.base_events.Server] = None
+        self._asyncio_loop: asyncio.events.AbstractEventLoop = (
+            asyncio.get_event_loop()
+        )
         self._logger = get_logger(
             name=self.__class__.__name__.lower(),
             suffix=str(id(self))
@@ -74,7 +77,7 @@ class AIOServer:
         if not address:
             self._close_connection_to_client_on_getpeername_error(writer)
 
-        client_ip_address, _ = address
+        client_ip_address, *_ = address
         writer.ip_address = client_ip_address
 
         self._connected_clients.append(writer)
@@ -90,10 +93,10 @@ class AIOServer:
                 # Just gracefully terminate coroutine, returning None.
                 return
 
-            asyncio.run_in_executor(
+            self._asyncio_loop.run_in_executor(
                 None,
                 functools.partial(
-                    _broadcast,
+                    self._broadcast,
                     sender_writer=writer,
                     data=data
                 )
@@ -107,18 +110,16 @@ class AIOServer:
         async def __broadcast():
             for client_writer in self._connected_clients:
                 if client_writer is not sender_writer:
-                    _ = (
-                        f'{client_writer.ip_address}:'
-                        f' {data.encode(encoding=DEFAULT_ENCODING)}'
-                    )
+                    _ = f'{client_writer.ip_address}: {data}'
                     await self._write_data(client_writer, _)
                 else:
-                    _ = f'You: {data.encode(encoding=DEFAULT_ENCODING)}'
+                    _ = f'You: {data}'
                     await self._write_data(sender_writer, _)
 
         asyncio.run(__broadcast())
 
     async def _write_data(
+        self,
         writer: asyncio.StreamWriter,
         data: str
     ) -> None:
@@ -133,9 +134,9 @@ class AIOServer:
         else:
             self._logger.info('Data has been successfully written.')
 
-    async def _read_data(reader: asyncio.StreamReader, limit: int = -1):
+    async def _read_data(self, reader: asyncio.StreamReader):
         try:
-            return (await reader.read(limit)).decode(DEFAULT_ENCODING)
+            return (await reader.readline()).decode(DEFAULT_ENCODING)
         except OSError:
             self._logger.error(
                 'An error occured while reading data:\n',
@@ -199,3 +200,10 @@ class AIOServer:
 
     def __repr__(self):
         return f'<AIOServer({self.host}, {self.port}) object at {id(self)}>'
+
+
+if __name__ == '__main__':
+    aioserver = AIOServer()
+    event_loop = asyncio.get_event_loop()
+    event_loop.run_until_complete(aioserver.start_server())
+    event_loop.run_forever()
