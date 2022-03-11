@@ -105,12 +105,12 @@ class AIOClient:
         except OSError:
             self._logger.error(
                 'Error while writing data (%s) due to an exception below:\n',
-                data,
+                data.strip(),
                 exc_info=True
             )
         else:
             self._logger.info(
-                'Data has been sent successfully: %s.', data
+                'Data has been sent successfully: %s.', data.strip()
             )
 
     async def _read_data(self, reader: asyncio.StreamReader) -> Optional[str]:

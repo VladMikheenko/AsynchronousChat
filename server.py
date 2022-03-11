@@ -134,9 +134,9 @@ class AIOServer:
         else:
             self._logger.info('Data has been successfully written.')
 
-    async def _read_data(self, reader: asyncio.StreamReader):
+    async def _read_data(self, reader: asyncio.StreamReader, limit = -1):
         try:
-            return (await reader.readline()).decode(DEFAULT_ENCODING)
+            return (await reader.read(limit)).decode(DEFAULT_ENCODING)
         except OSError:
             self._logger.error(
                 'An error occured while reading data:\n',
