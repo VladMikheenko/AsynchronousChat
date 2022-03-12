@@ -8,7 +8,6 @@ from .utils.constants import (
     ERROR_EXIT_CODE,
     DEFAULT_SERVER_HOST,
     DEFAULT_SERVER_PORT,
-    DEFAULT_BATCH_SIZE,
     DEFAULT_ENCODING
 )
 
@@ -22,9 +21,6 @@ class AIOClient:
         self.host = host
         self.port = port
 
-        self._asyncio_loop: asyncio.events.AbstractEventLoop = (
-            asyncio.get_event_loop()
-        )
         self._logger = get_logger(
             name=self.__class__.__name__.lower(),
             suffix=str(id(self))
@@ -34,14 +30,14 @@ class AIOClient:
     async def connect(self) -> None:
         reader, writer = await self._open_connection()
 
-        self._asyncio_loop.run_in_executor(
+        asyncio.get_event_loop().run_in_executor(
             None,
             functools.partial(self._consume_data, reader=reader)
         )
 
         while True:
-            data = input('-> ') + '\n'
-            
+            data = input('-> ')
+
             if not data:
                 break
 
@@ -98,9 +94,14 @@ class AIOClient:
                 self.host, self.port
             )
 
-    async def _write_data(self, writer: asyncio.StreamWriter, data: str) -> None:
+    async def _write_data(
+        self,
+        writer: asyncio.StreamWriter,
+        data: str
+    ) -> None:
         try:
             writer.write(data.encode(encoding=DEFAULT_ENCODING))
+            writer.write('\n'.encode(encoding=DEFAULT_ENCODING))
             await writer.drain()
         except OSError:
             self._logger.error(
@@ -113,9 +114,12 @@ class AIOClient:
                 'Data has been sent successfully: %s.', data.strip()
             )
 
-    async def _read_data(self, reader: asyncio.StreamReader) -> Optional[str]:
+    async def _read_data(
+        self,
+        reader: asyncio.StreamReader, limit = -1
+    ) -> Optional[str]:
         try:
-            data = await reader.read(DEFAULT_BATCH_SIZE)
+            data = (await reader.read(limit)).decode(DEFAULT_ENCODING)
         except OSError:
             self._logger.error(
                 'Error while reading data from remote host'
@@ -126,7 +130,7 @@ class AIOClient:
             self._logger.info(
                 'Data has been received successfully: %s.', data
             )
-            return data.decode(encoding=DEFAULT_ENCODING)
+            return data
 
     def __repr__(self):
         return f'<AIOClient({self.host}, {self.port}) object at {id(self)}>'

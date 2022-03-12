@@ -1,6 +1,7 @@
 import sys
 import asyncio
 import functools
+from typing import Optional
 
 from .utils.logger import get_logger
 from .utils.constants import (
@@ -19,9 +20,6 @@ class AIOServer:
 
         self._connected_clients: list[asyncio.StreamWriter] = []
         self._asyncio_server: Optional[asyncio.base_events.Server] = None
-        self._asyncio_loop: asyncio.events.AbstractEventLoop = (
-            asyncio.get_event_loop()
-        )
         self._logger = get_logger(
             name=self.__class__.__name__.lower(),
             suffix=str(id(self))
@@ -93,7 +91,7 @@ class AIOServer:
                 # Just gracefully terminate coroutine, returning None.
                 return
 
-            self._asyncio_loop.run_in_executor(
+            asyncio.get_event_loop().run_in_executor(
                 None,
                 functools.partial(
                     self._broadcast,
@@ -112,6 +110,7 @@ class AIOServer:
                 if client_writer is not sender_writer:
                     _ = f'{client_writer.ip_address}: {data}'
                     await self._write_data(client_writer, _)
+                    
                 else:
                     _ = f'You: {data}'
                     await self._write_data(sender_writer, _)
@@ -134,9 +133,13 @@ class AIOServer:
         else:
             self._logger.info('Data has been successfully written.')
 
-    async def _read_data(self, reader: asyncio.StreamReader, limit = -1):
+    async def _read_data(
+        self,
+        reader: asyncio.StreamReader,
+        limit = -1
+    ) -> Optional[str]:
         try:
-            return (await reader.read(limit)).decode(DEFAULT_ENCODING)
+            data = (await reader.read(limit)).decode(DEFAULT_ENCODING)
         except OSError:
             self._logger.error(
                 'An error occured while reading data:\n',
@@ -147,6 +150,7 @@ class AIOServer:
                 'Data has been successfully read'
                 f' ({limit} bytes).' if limit else '.'
             )
+            return data
 
     async def _close_connection_to_client_on_getpeername_error(
         self,
