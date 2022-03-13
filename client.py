@@ -3,6 +3,7 @@ import asyncio
 import functools
 from typing import Optional
 
+from .utils.classes import AIO
 from .utils.logger import get_logger
 from .utils.constants import (
     ERROR_EXIT_CODE,
@@ -12,7 +13,7 @@ from .utils.constants import (
 )
 
 
-class AIOClient:
+class AIOClient(AIO):
     def __init__(
         self,
         host: str = DEFAULT_SERVER_HOST,
@@ -93,44 +94,6 @@ class AIOClient:
                 'Connection to the address (%s, %s) has been closed.',
                 self.host, self.port
             )
-
-    async def _write_data(
-        self,
-        writer: asyncio.StreamWriter,
-        data: str
-    ) -> None:
-        try:
-            writer.write(data.encode(encoding=DEFAULT_ENCODING))
-            writer.write('\n'.encode(encoding=DEFAULT_ENCODING))
-            await writer.drain()
-        except OSError:
-            self._logger.error(
-                'Error while writing data (%s) due to an exception below:\n',
-                data.strip(),
-                exc_info=True
-            )
-        else:
-            self._logger.info(
-                'Data has been sent successfully: %s.', data.strip()
-            )
-
-    async def _read_data(
-        self,
-        reader: asyncio.StreamReader, limit = -1
-    ) -> Optional[str]:
-        try:
-            data = (await reader.read(limit)).decode(DEFAULT_ENCODING)
-        except OSError:
-            self._logger.error(
-                'Error while reading data from remote host'
-                ' due to an exception below:\n',
-                exc_info=True
-            )
-        else:
-            self._logger.info(
-                'Data has been received successfully: %s.', data
-            )
-            return data
 
     def __repr__(self):
         return f'<AIOClient({self.host}, {self.port}) object at {id(self)}>'

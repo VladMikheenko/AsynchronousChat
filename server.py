@@ -3,13 +3,14 @@ import asyncio
 import functools
 from typing import Optional
 
+from .utils.classes import AIO
 from .utils.logger import get_logger
 from .utils.constants import (
     ERROR_EXIT_CODE, DEFAULT_SERVER_HOST, DEFAULT_SERVER_PORT, DEFAULT_ENCODING
 )
 
 
-class AIOServer:
+class AIOServer(AIO):
     def __init__(
         self,
         host: str = DEFAULT_SERVER_HOST,
@@ -116,41 +117,6 @@ class AIOServer:
                     await self._write_data(sender_writer, _)
 
         asyncio.run(__broadcast())
-
-    async def _write_data(
-        self,
-        writer: asyncio.StreamWriter,
-        data: str
-    ) -> None:
-        try:
-            writer.write(data.encode(encoding=DEFAULT_ENCODING))
-            await writer.drain()
-        except OSError:
-            self._logger.error(
-                'An error occured while writing data:\n',
-                exc_info=True
-            )
-        else:
-            self._logger.info('Data has been successfully written.')
-
-    async def _read_data(
-        self,
-        reader: asyncio.StreamReader,
-        limit = -1
-    ) -> Optional[str]:
-        try:
-            data = (await reader.read(limit)).decode(DEFAULT_ENCODING)
-        except OSError:
-            self._logger.error(
-                'An error occured while reading data:\n',
-                exc_info=True
-            )
-        else:
-            self._logger.info(
-                'Data has been successfully read'
-                f' ({limit} bytes).' if limit else '.'
-            )
-            return data
 
     async def _close_connection_to_client_on_getpeername_error(
         self,
