@@ -1,5 +1,7 @@
 import asyncio
-from typing import Optional, NoReturn
+from typing import Optional
+
+from .constants import DEFAULT_ENCODING, BYTES_READ_LIMIT
 
 
 class AIO:
@@ -31,7 +33,7 @@ class AIO:
 
     async def _read_data(
         self,
-        reader: asyncio.StreamReader, limit = -1
+        reader: asyncio.StreamReader, limit = BYTES_READ_LIMIT
     ) -> Optional[str]:
         try:
             data = (await reader.read(limit)).decode(DEFAULT_ENCODING)

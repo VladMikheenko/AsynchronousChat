@@ -45,7 +45,7 @@ class AIOServer(AIO):
         try:
             if not self._asyncio_server:
                 logger.warning(
-                    'An attempt to close not existing server has been made.'
+                    'An attempt to close non-existing server has been made.'
                 )
                 return
             if self._asyncio_server.is_closing():
@@ -77,7 +77,6 @@ class AIOServer(AIO):
             self._close_connection_to_client_on_getpeername_error(writer)
 
         client_ip_address, *_ = address
-        writer.ip_address = client_ip_address
 
         self._connected_clients.append(writer)
         self._logger.info('%s has connected.', client_ip_address)
@@ -89,7 +88,7 @@ class AIOServer(AIO):
                 self._logger.info('%s has sent EOF.', client_ip_address)
                 await self._close_client_connection(writer, client_ip_address)
                 # As there is no more connection between client <-> server,
-                # Just gracefully terminate coroutine, returning None.
+                # Just gracefully terminate coroutine returning None.
                 return
 
             asyncio.get_event_loop().run_in_executor(
@@ -97,24 +96,23 @@ class AIOServer(AIO):
                 functools.partial(
                     self._broadcast,
                     sender_writer=writer,
+                    sender_ip_address=client_ip_address,
                     data=data
                 )
             )
 
     def _broadcast(
-        self, sender_writer: asyncio.StreamWriter, data: str
+        self,
+        sender_writer: asyncio.StreamWriter,
+        sender_ip_address: str,
+        data: str,
     ) -> None:
-        """Asynchronously broadcasts data from a separate thread.
-        """
         async def __broadcast():
-            for client_writer in self._connected_clients:
-                if client_writer is not sender_writer:
-                    _ = f'{client_writer.ip_address}: {data}'
-                    await self._write_data(client_writer, _)
-                    
-                else:
-                    _ = f'You: {data}'
-                    await self._write_data(sender_writer, _)
+            for writer in self._connected_clients:
+                if writer is not sender_writer:
+                    await self._write_data(
+                        writer, f'{sender_ip_address}: {data}'
+                    )
 
         asyncio.run(__broadcast())
 
