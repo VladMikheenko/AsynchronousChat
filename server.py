@@ -83,6 +83,7 @@ class AIOServer(AIO):
 
         while True:
             data = await self._read_data(reader)
+            breakpoint()
 
             if not data:
                 self._logger.info('%s has sent EOF.', client_ip_address)
@@ -91,30 +92,34 @@ class AIOServer(AIO):
                 # Just gracefully terminate coroutine returning None.
                 return
 
-            asyncio.get_event_loop().run_in_executor(
-                None,
-                functools.partial(
-                    self._broadcast,
-                    sender_writer=writer,
-                    sender_ip_address=client_ip_address,
-                    data=data
-                )
-            )
 
-    def _broadcast(
-        self,
-        sender_writer: asyncio.StreamWriter,
-        sender_ip_address: str,
-        data: str,
-    ) -> None:
-        async def __broadcast():
-            for writer in self._connected_clients:
-                if writer is not sender_writer:
+            async def _broadcast(
+                # self,
+                sender_writer: asyncio.StreamWriter,
+                sender_ip_address: str,
+                data: str,
+            ) -> None:
+                # async def __broadcast():
+                for writer in self._connected_clients:
+                    # if writer is not sender_writer:
                     await self._write_data(
                         writer, f'{sender_ip_address}: {data}'
                     )
 
-        asyncio.run(__broadcast())
+            task = asyncio.create_task(
+                _broadcast(writer, client_ip_address, data)
+            )
+            await task
+
+            # asyncio.get_event_loop().run_in_executor(
+            #     None,
+            #     functools.partial(
+            #         self._broadcast,
+            #         sender_writer=writer,
+            #         sender_ip_address=client_ip_address,
+            #         data=data
+            #     )
+            # )
 
     async def _close_connection_to_client_on_getpeername_error(
         self,

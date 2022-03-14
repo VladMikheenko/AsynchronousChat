@@ -20,7 +20,7 @@ class AIO:
         try:
             writer.write(data.encode(encoding=DEFAULT_ENCODING))
             await writer.drain()
-        except OSError:   
+        except OSError:
             self._logger.error(
                 'Error while writing data (%s) due to an exception below:\n',
                 data.strip(),
