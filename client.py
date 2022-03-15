@@ -31,10 +31,7 @@ class AIOClient(AIO):
     async def connect(self) -> None:
         reader, writer = await self._open_connection()
 
-        asyncio.get_event_loop().run_in_executor(
-            None,
-            functools.partial(self._consume_data, reader=reader)
-        )
+        _ = asyncio.create_task(self._consume_data(reader))
 
         while True:
             data = input('-> ')
@@ -46,13 +43,15 @@ class AIOClient(AIO):
 
         await self._close_connection(writer=writer)
 
-    def _consume_data(self, reader: asyncio.StreamReader) -> None:
-        async def __consume_data():
-            while True:
-                print(await self._read_data(reader), flush=True)
-                sys.stdout.flush()
+    async def _consume_data(self, reader: asyncio.StreamReader) -> None:
+        while True:
+            data = await self._read_data(reader)
 
-        asyncio.run(__consume_data())
+            if not data:
+                return
+
+            print(data, flush=True)
+            sys.stdout.flush()
 
     async def _open_connection(
         self

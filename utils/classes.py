@@ -18,6 +18,7 @@ class AIO:
         data: str
     ) -> None:
         try:
+            data += '\n'
             writer.write(data.encode(encoding=DEFAULT_ENCODING))
             await writer.drain()
         except OSError:
@@ -36,7 +37,7 @@ class AIO:
         reader: asyncio.StreamReader, limit = BYTES_READ_LIMIT
     ) -> Optional[str]:
         try:
-            data = (await reader.read(limit)).decode(DEFAULT_ENCODING)
+            data = (await reader.readline()).decode(DEFAULT_ENCODING)
         except OSError:
             self._logger.error(
                 'Error while reading data due to an exception below:\n',
