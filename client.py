@@ -31,27 +31,35 @@ class AIOClient(AIO):
     async def connect(self) -> None:
         reader, writer = await self._open_connection()
 
-        _ = asyncio.create_task(self._consume_data(reader))
+        asyncio.get_event_loop().run_in_executor(
+            None,
+            functools.partial(self._consume_data, reader)
+        )
 
-        while True:
-            data = input('-> ')
+        await self._write_data(writer=writer, data='Hi there!')
+        await self._write_data(writer=writer, data='The second one!')
+        # while True:
+        #     data = input('-> ')
 
-            if not data:
-                break
+        #     if not data:
+        #         break
 
-            await self._write_data(writer=writer, data=data)
+        #     await self._write_data(writer=writer, data=data)
 
         await self._close_connection(writer=writer)
 
-    async def _consume_data(self, reader: asyncio.StreamReader) -> None:
-        while True:
-            data = await self._read_data(reader)
+    def _consume_data(self, reader: asyncio.StreamReader) -> None:
+        async def __consume_data():
+            while True:
+                data = await self._read_data(reader)
+                
+                if not data:
+                    await asyncio.sleep(0.05)
+                    continue
 
-            if not data:
-                return
+                print(data, flush=True)
 
-            print(data, flush=True)
-            sys.stdout.flush()
+        asyncio.run(__consume_data())
 
     async def _open_connection(
         self

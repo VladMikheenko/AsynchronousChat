@@ -37,14 +37,16 @@ class AIO:
         reader: asyncio.StreamReader, limit = BYTES_READ_LIMIT
     ) -> Optional[str]:
         try:
-            data = (await reader.readline()).decode(DEFAULT_ENCODING)
+            data = (await reader.read(limit)).decode(DEFAULT_ENCODING)
         except OSError:
             self._logger.error(
                 'Error while reading data due to an exception below:\n',
                 exc_info=True
             )
         else:
-            self._logger.info(
-                'Data has been received successfully: %s.', data.strip()
-            )
-            return data
+            # Variable below can be an empty string, which implies EOF.
+            if data:
+                self._logger.info(
+                    'Data has been received successfully: %s.', data.strip()
+                )
+                return data

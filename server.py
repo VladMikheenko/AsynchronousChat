@@ -91,21 +91,30 @@ class AIOServer(AIO):
                 # Just gracefully terminate coroutine returning None.
                 return
 
-            _ = asyncio.create_task(
-                self._broadcast(writer, client_ip_address, data)
+            asyncio.get_event_loop().run_in_executor(
+                None,
+                functools.partial(
+                    self._broadcast,
+                    writer,
+                    client_ip_address,
+                    data
+                )
             )
 
-    async def _broadcast(
+    def _broadcast(
         self,
         sender_writer: asyncio.StreamWriter,
         sender_ip_address: str,
         data: str,
     ) -> None:
-        for writer in self._connected_clients:
-            # if writer is not sender_writer:
-            await self._write_data(
-                writer, f'{sender_ip_address}: {data}'
-            )
+        async def __broadcast():
+            for writer in self._connected_clients:
+                # if writer is not sender_writer:
+                await self._write_data(
+                    writer, f'{sender_ip_address}: {data}'
+                )
+
+        asyncio.run(__broadcast())
 
     async def _close_connection_to_client_on_getpeername_error(
         self,
