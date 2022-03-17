@@ -30,7 +30,11 @@ class AIOServer(AIO):
     async def start_server(self) -> None:
         try:
             self._asyncio_server = (
-                await asyncio.start_server(self._serve, self.host, self.port)
+                await asyncio.start_server(
+                    self._preprocess_client,
+                    self.host,
+                    self.port
+                )
             )
         except OSError:
             self._logger.error(
@@ -66,7 +70,7 @@ class AIOServer(AIO):
         else:
             self._logger.info('Server has been closed.')
 
-    async def _serve(
+    async def _preprocess_client(
         self,
         reader: asyncio.StreamReader,
         writer: asyncio.StreamWriter
@@ -77,10 +81,19 @@ class AIOServer(AIO):
             self._close_connection_to_client_on_getpeername_error(writer)
 
         client_ip_address, *_ = address
-
         self._connected_clients.append(writer)
         self._logger.info('%s has connected.', client_ip_address)
 
+        await asyncio.create_task(
+            self._process(reader, writer, client_ip_address)
+        )
+
+    async def _process(
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+        client_ip_address: str
+    ) -> None:
         while True:
             data = await self._read_data(reader)
 
@@ -91,30 +104,18 @@ class AIOServer(AIO):
                 # Just gracefully terminate coroutine returning None.
                 return
 
-            asyncio.get_event_loop().run_in_executor(
-                None,
-                functools.partial(
-                    self._broadcast,
-                    writer,
-                    client_ip_address,
-                    data
-                )
+            _ = asyncio.create_task(
+                self._broadcast(writer, client_ip_address, data)
             )
 
-    def _broadcast(
+    async def _broadcast(
         self,
         sender_writer: asyncio.StreamWriter,
         sender_ip_address: str,
         data: str,
     ) -> None:
-        async def __broadcast():
-            for writer in self._connected_clients:
-                # if writer is not sender_writer:
-                await self._write_data(
-                    writer, f'{sender_ip_address}: {data}'
-                )
-
-        asyncio.run(__broadcast())
+        for writer in self._connected_clients:
+            await self._write_data(writer, f'{sender_ip_address}: {data}')
 
     async def _close_connection_to_client_on_getpeername_error(
         self,
