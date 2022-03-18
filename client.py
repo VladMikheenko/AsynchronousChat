@@ -52,7 +52,6 @@ class AIOClient(AIO):
 
             print(data, flush=True)
 
-
     async def _open_connection(
         self
     ) -> Optional[tuple[asyncio.StreamReader, asyncio.StreamWriter]]:

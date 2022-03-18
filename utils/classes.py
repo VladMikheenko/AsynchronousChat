@@ -44,9 +44,7 @@ class AIO:
                 exc_info=True
             )
         else:
-            # Variable below can be an empty string, which implies EOF.
-            if data:
-                self._logger.info(
-                    'Data has been received successfully: %s.', data.strip()
-                )
-                return data
+            self._logger.info(
+                'Data has been received successfully: %s.', data.strip()
+            )
+            return data
