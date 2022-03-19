@@ -1,6 +1,5 @@
 import sys
 import asyncio
-import functools
 from typing import Optional
 
 from .utils.classes import AIO
