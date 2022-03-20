@@ -83,9 +83,7 @@ class AIOServer(AIO):
         self._connected_clients.append(writer)
         self._logger.info('%s has connected.', client_ip_address)
 
-        await asyncio.create_task(
-            self._process(reader, writer, client_ip_address)
-        )
+        await self._process(reader, writer, client_ip_address)
 
     async def _process(
         self,

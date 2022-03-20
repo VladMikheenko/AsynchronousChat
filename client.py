@@ -1,5 +1,7 @@
 import sys
+import queue
 import asyncio
+import functools
 from typing import Optional
 
 from .utils.classes import AIO
@@ -20,6 +22,7 @@ class AIOClient(AIO):
     ) -> None:
         self.host = host
         self.port = port
+        self._queue = queue.Queue()
 
         self._logger = get_logger(
             name=self.__class__.__name__.lower(),
@@ -30,24 +33,28 @@ class AIOClient(AIO):
     async def connect(self) -> None:
         reader, writer = await self._open_connection()
 
+        asyncio.get_event_loop().run_in_executor(
+            None,
+            self._read_and_enqueue_input
+        )
         _ = asyncio.create_task(self._consume_data(reader))
 
         while True:
-            data = input('-> ')
-
-            if not data:
-                break
-
-            await self._write_data(writer=writer, data=data)
+            await self._write_data(writer=writer, data=self._queue.get())
+            self._queue.task_done()
 
         await self._close_connection(writer=writer)
+
+    def _read_and_enqueue_input(self):
+        while True:
+            self._queue.put(input('-> '))
 
     async def _consume_data(self, reader: asyncio.StreamReader) -> None:
         while True:
             data = await self._read_data(reader)
 
             if not data:
-                break
+                return
 
             print(data, flush=True)
 
