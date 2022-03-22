@@ -3,7 +3,7 @@ import asyncio
 from typing import Optional
 
 from .utils.classes import AIO
-from .utils.logger import get_logger
+from .utils.functions import get_logger
 from .utils.constants import (
     ERROR_EXIT_CODE, DEFAULT_SERVER_HOST, DEFAULT_SERVER_PORT, DEFAULT_ENCODING
 )
@@ -30,7 +30,7 @@ class AIOServer(AIO):
         try:
             self._asyncio_server = (
                 await asyncio.start_server(
-                    self._preprocess_client,
+                    self._preprocess,
                     self.host,
                     self.port
                 )
@@ -69,7 +69,7 @@ class AIOServer(AIO):
         else:
             self._logger.info('Server has been closed.')
 
-    async def _preprocess_client(
+    async def _preprocess(
         self,
         reader: asyncio.StreamReader,
         writer: asyncio.StreamWriter

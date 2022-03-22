@@ -23,7 +23,7 @@ def adjust_logger(
     file_handler = logging.FileHandler(unique_identifier + '.log')
     file_handler.setLevel(logging.DEBUG)
     stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.INFO)
+    stream_handler.setLevel(logging.ERROR)
 
     default_formatter = logging.Formatter(
         '%(asctime)s - %(filename)s - %(levelname)s - %(message)s'

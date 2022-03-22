@@ -18,7 +18,6 @@ class AIO:
         data: str
     ) -> None:
         try:
-            data += '\n'
             writer.write(data.encode(encoding=DEFAULT_ENCODING))
             await writer.drain()
         except OSError:

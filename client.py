@@ -1,11 +1,10 @@
 import sys
 import queue
 import asyncio
-import functools
 from typing import Optional
 
 from .utils.classes import AIO
-from .utils.logger import get_logger
+from .utils.functions import get_logger
 from .utils.constants import (
     ERROR_EXIT_CODE,
     DEFAULT_SERVER_HOST,
@@ -36,45 +35,43 @@ class AIOClient(AIO):
 
         event_loop.run_in_executor(
             None,
-            self._read_and_enqueue_input
+            self._read_and_enqueue_data
         )
-        event_loop.run_in_executor(
-            None,
-            self._stream_data,
-            writer
-        )
-        event_loop.run_in_executor(
-            None,
-            self._consume_data,
-            reader
+        await asyncio.gather(
+            self._stream_data(writer),
+            self._consume_data(reader),
+            return_exceptions=True
         )
 
 
         await self._close_connection(writer=writer)
 
-    def _read_and_enqueue_input(self) -> None:
+    def _read_and_enqueue_data(self) -> None:
         while True:
-            self._queue.put(input('-> '))
+            data = input('-> ')
 
-    def _stream_data(writer: asyncio.StreamWriter) -> None:
-        async def __stream_data() -> None:
-            while True:
-                await self._write_data(writer=writer, data=self._queue.get())
+            if not data:
+                continue
+
+            self._queue.put(data)
+
+    async def _stream_data(self, writer: asyncio.StreamWriter) -> None:
+        while True:
+            try:
+                await self._write_data(writer=writer, data=self._queue.get_nowait())
+            except queue.Empty: 
+                await asyncio.sleep(0.01)
+            else:
                 self._queue.task_done()
 
-        asyncio.run(__stream_data())
+    async def _consume_data(self, reader: asyncio.StreamReader) -> None:
+        while True:
+            data = await self._read_data(reader)
 
-    def _consume_data(self, reader: asyncio.StreamReader) -> None:
-        async def __consume_data() -> None:
-            while True:
-                data = await self._read_data(reader)
+            if not data:
+                return
 
-                if not data:
-                    return
-
-                print(data, flush=True)
-
-        asyncio.run(__consume_data())
+            print(data, flush=True)
 
     async def _open_connection(
         self
