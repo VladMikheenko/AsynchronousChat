@@ -9,7 +9,8 @@ from .utils.constants import (
     ERROR_EXIT_CODE,
     DEFAULT_SERVER_HOST,
     DEFAULT_SERVER_PORT,
-    DEFAULT_ENCODING
+    DEFAULT_ENCODING,
+    QUEUE_GET_DATA_INTERVAL
 )
 
 
@@ -19,9 +20,11 @@ class AIOClient(AIO):
         host: str = DEFAULT_SERVER_HOST,
         port: int = DEFAULT_SERVER_PORT,
     ) -> None:
-        self.host = host
-        self.port = port
+        self._host = host
+        self._port = port
+
         self._queue = queue.Queue()
+        self._event_loop = asyncio.get_event_loop()
 
         self._logger = get_logger(
             name=self.__class__.__name__.lower(),
@@ -31,9 +34,8 @@ class AIOClient(AIO):
 
     async def connect(self) -> None:
         reader, writer = await self._open_connection()
-        event_loop = asyncio.get_event_loop()
 
-        event_loop.run_in_executor(
+        self.event_loop.run_in_executor(
             None,
             self._read_and_enqueue_data
         )
@@ -42,8 +44,6 @@ class AIOClient(AIO):
             self._consume_data(reader),
             return_exceptions=True
         )
-
-
         await self._close_connection(writer=writer)
 
     def _read_and_enqueue_data(self) -> None:
@@ -58,9 +58,12 @@ class AIOClient(AIO):
     async def _stream_data(self, writer: asyncio.StreamWriter) -> None:
         while True:
             try:
-                await self._write_data(writer=writer, data=self._queue.get_nowait())
+                await self._write_data(
+                    writer=writer,
+                    data=self._queue.get_nowait()
+                )
             except queue.Empty: 
-                await asyncio.sleep(0.01)
+                await asyncio.sleep(QUEUE_GET_DATA_INTERVAL)
             else:
                 self._queue.task_done()
 
@@ -78,21 +81,21 @@ class AIOClient(AIO):
     ) -> Optional[tuple[asyncio.StreamReader, asyncio.StreamWriter]]:
         try:
             reader, writer = await asyncio.open_connection(
-                self.host,
-                self.port
+                self._host,
+                self._port
             )
         except OSError:
             self._logger.error(
                 'Connection has not been established to the address (%s, %s)'
                 ' due to an exception below:\n',
-                self.host, self.port,
+                self._host, self._port,
                 exc_info=True
             )
             sys.exit(ERROR_EXIT_CODE)
         else:
             self._logger.info(
                 'Connection has been established to the address (%s, %s).',
-                self.host, self.port
+                self._host, self._port
             )
             return reader, writer
 
@@ -104,18 +107,18 @@ class AIOClient(AIO):
             self._logger.error(
                 'Connection has not been closed to the address (%s, %s)'
                 ' due to an exception below:\n',
-                self.host, self.port,
+                self._host, self._port,
                 exc_info=True
             )
             sys.exit(ERROR_EXIT_CODE)
         else:
             self._logger.info(
                 'Connection to the address (%s, %s) has been closed.',
-                self.host, self.port
+                self._host, self._port
             )
 
     def __repr__(self):
-        return f'<AIOClient({self.host}, {self.port}) object at {id(self)}>'
+        return f'<AIOClient({self._host}, {self._port}) object at {id(self)}>'
 
 
 if __name__ == '__main__':

@@ -5,7 +5,10 @@ from typing import Optional
 from .utils.classes import AIO
 from .utils.functions import get_logger
 from .utils.constants import (
-    ERROR_EXIT_CODE, DEFAULT_SERVER_HOST, DEFAULT_SERVER_PORT, DEFAULT_ENCODING
+    ERROR_EXIT_CODE,
+    DEFAULT_SERVER_HOST,
+    DEFAULT_SERVER_PORT,
+    DEFAULT_ENCODING
 )
 
 
@@ -15,8 +18,8 @@ class AIOServer(AIO):
         host: str = DEFAULT_SERVER_HOST,
         port: int = DEFAULT_SERVER_PORT,
     ) -> None:
-        self.host = host
-        self.port = port
+        self._host = host
+        self._port = port
 
         self._connected_clients: list[asyncio.StreamWriter] = []
         self._asyncio_server: Optional[asyncio.base_events.Server] = None
@@ -31,8 +34,8 @@ class AIOServer(AIO):
             self._asyncio_server = (
                 await asyncio.start_server(
                     self._preprocess,
-                    self.host,
-                    self.port
+                    self._host,
+                    self._port
                 )
             )
         except OSError:
@@ -165,7 +168,7 @@ class AIOServer(AIO):
             )
 
     def __repr__(self):
-        return f'<AIOServer({self.host}, {self.port}) object at {id(self)}>'
+        return f'<AIOServer({self._host}, {self._port}) object at {id(self)}>'
 
 
 if __name__ == '__main__':
