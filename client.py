@@ -35,7 +35,7 @@ class AIOClient(AIO):
     async def connect(self) -> None:
         reader, writer = await self._open_connection()
 
-        self.event_loop.run_in_executor(
+        self._event_loop.run_in_executor(
             None,
             self._read_and_enqueue_data
         )
@@ -48,7 +48,7 @@ class AIOClient(AIO):
 
     def _read_and_enqueue_data(self) -> None:
         while True:
-            data = input('-> ')
+            data = input()
 
             if not data:
                 continue
