@@ -27,7 +27,7 @@ class AIO:
                 exc_info=True
             )
         else:
-            self._logger.info(
+            self._logger.debug(
                 'Data has been sent successfully: %s.', data.strip()
             )
 
@@ -43,7 +43,7 @@ class AIO:
                 exc_info=True
             )
         else:
-            self._logger.info(
+            self._logger.error(
                 'Data has been received successfully: %s.', data.strip()
             )
             return data

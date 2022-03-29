@@ -29,47 +29,44 @@ class AIOServer(AIO):
         )
         self._logger.debug('%s has been initialized.', self.__repr__())
 
-    async def start_server(self) -> None:
-        try:
-            self._asyncio_server = (
-                await asyncio.start_server(
-                    self._preprocess,
-                    self._host,
-                    self._port
-                )
+    async def start_server(self) -> asyncio.events.AbstractServer:
+        self._asyncio_server = (
+            await asyncio.start_server(
+                self._preprocess,
+                self._host,
+                self._port
             )
-        except OSError:
-            self._logger.error(
-                'An error occured while starting server:\n',
-                exc_info=True
-            )
-            sys.exit(ERROR_EXIT_CODE)
-        else:
-            self._logger.info('Server has been started.')
+        )
+
+        self._logger.info(
+            'Server has been started on (%s, %s).'
+            '\nReady to accept connections...', self._host, self._port
+        )
+        return self._asyncio_server
 
     async def close_server(self) -> None:
-        try:
-            if not self._asyncio_server:
-                logger.warning(
-                    'An attempt to close non-existing server has been made.'
-                )
-                return
-            if self._asyncio_server.is_closing():
-                logger.warning(
-                    'Asyncio server is closing (closed).'
-                    ' No need to do it again.'
-                )
-                return
+        if not self._asyncio_server:
+            logger.warning(
+                'An attempt to close non-existing server has been made.'
+            )
+            return
+        if self._asyncio_server.is_closing():
+            logger.warning(
+                'Asyncio server is closing (closed).'
+                ' No need to do it again.'
+            )
+            return
 
+        try:
             self._asyncio_server.close()
             await self._asyncio_server.wait_closed()
-            self._asyncio_server = None
         except OSError:
             self._logger.error(
                 'An error occured while closing server:\n',
                 exc_info=True
             )
         else:
+            self._asyncio_server = None
             self._logger.info('Server has been closed.')
 
     async def _preprocess(
@@ -115,7 +112,8 @@ class AIOServer(AIO):
         data: str,
     ) -> None:
         for writer in self._connected_clients:
-            await self._write_data(writer, f'{sender_ip_address}: {data}')
+            if writer is not sender_writer:
+                await self._write_data(writer, f'{sender_ip_address}: {data}')
 
     async def _close_connection_to_client_on_getpeername_error(
         self,
@@ -140,7 +138,7 @@ class AIOServer(AIO):
                 exc_info=True
             )
         else:
-            self._logger.info(
+            self._logger.debug(
                 'Connection to the client with a not defined IP'
                 ' has been closed.'
             )
@@ -162,7 +160,7 @@ class AIOServer(AIO):
                 exc_info=True
             )
         else:
-            self._logger.info(
+            self._logger.debug(
                 'Connection to the client %s has been closed.',
                 client_ip_address
             )
@@ -171,8 +169,13 @@ class AIOServer(AIO):
         return f'<AIOServer({self._host}, {self._port}) object at {id(self)}>'
 
 
-if __name__ == '__main__':
+async def run_server():
     aioserver = AIOServer()
-    event_loop = asyncio.get_event_loop()
-    event_loop.run_until_complete(aioserver.start_server())
-    event_loop.run_forever()
+    asyncio_server = await aioserver.start_server()
+
+    async with asyncio_server:
+        await asyncio_server.serve_forever()
+
+
+if __name__ == '__main__':
+    asyncio.run(run_server())

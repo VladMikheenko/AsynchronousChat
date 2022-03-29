@@ -93,7 +93,7 @@ class AIOClient(AIO):
             )
             sys.exit(ERROR_EXIT_CODE)
         else:
-            self._logger.info(
+            self._logger.debug(
                 'Connection has been established to the address (%s, %s).',
                 self._host, self._port
             )
@@ -112,7 +112,7 @@ class AIOClient(AIO):
             )
             sys.exit(ERROR_EXIT_CODE)
         else:
-            self._logger.info(
+            self._logger.debug(
                 'Connection to the address (%s, %s) has been closed.',
                 self._host, self._port
             )

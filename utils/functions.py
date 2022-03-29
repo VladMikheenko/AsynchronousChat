@@ -1,3 +1,4 @@
+import sys
 import logging
 from typing import Optional
 
@@ -22,15 +23,16 @@ def adjust_logger(
 ) -> logging.Logger:
     file_handler = logging.FileHandler(unique_identifier + '.log')
     file_handler.setLevel(logging.DEBUG)
-    stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.ERROR)
+    stream_handler = logging.StreamHandler(stream=sys.stdout)
+    stream_handler.setLevel(logging.INFO)
 
-    default_formatter = logging.Formatter(
-        '%(asctime)s - %(filename)s - %(levelname)s - %(message)s'
+    file_handler.setFormatter(
+        logging.Formatter(
+            '%(asctime)s - %(filename)s - %(levelname)s - %(message)s'
+        )
     )
 
     for handler in (file_handler, stream_handler):
-        handler.setFormatter(default_formatter)
         logger.addHandler(handler)
 
     return logger
