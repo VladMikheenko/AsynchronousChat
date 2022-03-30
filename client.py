@@ -10,7 +10,7 @@ from .utils.constants import (
     DEFAULT_SERVER_HOST,
     DEFAULT_SERVER_PORT,
     DEFAULT_ENCODING,
-    QUEUE_GET_DATA_INTERVAL
+    DELAY_OF_QUEUE_GET_NOWAIT
 )
 
 
@@ -25,14 +25,13 @@ class AIOClient(AIO):
 
         self._queue = queue.Queue()
         self._event_loop = asyncio.get_event_loop()
-
         self._logger = get_logger(
             name=self.__class__.__name__.lower(),
             suffix=str(id(self))
         )
         self._logger.debug('%s has been initialized.', self.__repr__())
 
-    async def connect(self) -> None:
+    async def start_client(self) -> None:
         reader, writer = await self._open_connection()
 
         self._event_loop.run_in_executor(
@@ -40,8 +39,8 @@ class AIOClient(AIO):
             self._read_and_enqueue_data
         )
         await asyncio.gather(
-            self._stream_data(writer),
-            self._consume_data(reader),
+            self._send_data(writer),
+            self._receive_data(reader),
             return_exceptions=True
         )
         await self._close_connection(writer=writer)
@@ -55,7 +54,7 @@ class AIOClient(AIO):
 
             self._queue.put(data)
 
-    async def _stream_data(self, writer: asyncio.StreamWriter) -> None:
+    async def _send_data(self, writer: asyncio.StreamWriter) -> None:
         while True:
             try:
                 await self._write_data(
@@ -63,11 +62,11 @@ class AIOClient(AIO):
                     data=self._queue.get_nowait()
                 )
             except queue.Empty: 
-                await asyncio.sleep(QUEUE_GET_DATA_INTERVAL)
+                await asyncio.sleep(DELAY_OF_QUEUE_GET_NOWAIT)
             else:
                 self._queue.task_done()
 
-    async def _consume_data(self, reader: asyncio.StreamReader) -> None:
+    async def _receive_data(self, reader: asyncio.StreamReader) -> None:
         while True:
             data = await self._read_data(reader)
 
@@ -123,4 +122,4 @@ class AIOClient(AIO):
 
 if __name__ == '__main__':
     aioclient = AIOClient()
-    asyncio.run(aioclient.connect())
+    asyncio.run(aioclient.start_client())
