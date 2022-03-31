@@ -92,51 +92,23 @@ class AIOServer(AIO):
         self,
         writer: asyncio.StreamWriter
     ) -> None:
-        try:
-            writer.write(
-                'Sorry, server count not identify your IP.'
-                .encode(DEFAULT_ENCODING)
-            )
+        self._write_data(
+            writer,
+            'Sorry, server count not identify your IP.'
+            .encode(DEFAULT_ENCODING)
+        )
 
-            if writer.can_write_eof():
-                write.write_eof()
-
-            await writer.drain()
-            writer.close()
-            await writer.wait_closed()
-        except OSError:
-            self._logger.error(
-                'Connection to the client with a not defined IP'
-                ' has not been closed due to an exception below:\n',
-                exc_info=True
-            )
-        else:
-            self._logger.debug(
-                'Connection to the client with a not defined IP'
-                ' has been closed.'
-            )
+        writer.close()
+        await writer.wait_closed()
 
     async def _close_client_connection(
         self,
         writer: asyncio.StreamWriter,
         ip_address: str
     ) -> None:
-        try:
-            writer.close()
-            await writer.wait_closed()
-            self._connected_clients.remove(writer)
-        except OSError:
-            self._logger.error(
-                'Connection to the client %s'
-                ' has not been closed due to an exception below:\n',
-                ip_address,
-                exc_info=True
-            )
-        else:
-            self._logger.debug(
-                'Connection to the client %s has been closed.',
-                ip_address
-            )
+        writer.close()
+        await writer.wait_closed()
+        self._connected_clients.remove(writer)
 
     def __repr__(self):
         return f'<AIOServer({self._host}, {self._port}) object at {id(self)}>'

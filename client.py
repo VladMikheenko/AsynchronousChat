@@ -1,4 +1,3 @@
-import sys
 import queue
 import asyncio
 from typing import Optional
@@ -6,7 +5,6 @@ from typing import Optional
 from .utils.classes import AIO
 from .utils.functions import get_logger
 from .utils.constants import (
-    ERROR_EXIT_CODE,
     DEFAULT_SERVER_HOST,
     DEFAULT_SERVER_PORT,
     DEFAULT_ENCODING,
@@ -90,7 +88,6 @@ class AIOClient(AIO):
                 self._host, self._port,
                 exc_info=True
             )
-            sys.exit(ERROR_EXIT_CODE)
         else:
             self._logger.debug(
                 'Connection has been established to the address (%s, %s).',
@@ -109,7 +106,6 @@ class AIOClient(AIO):
                 self._host, self._port,
                 exc_info=True
             )
-            sys.exit(ERROR_EXIT_CODE)
         else:
             self._logger.debug(
                 'Connection to the address (%s, %s) has been closed.',
