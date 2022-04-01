@@ -96,21 +96,13 @@ class AIOClient(AIO):
             return reader, writer
 
     async def _close_connection(self, writer: asyncio.StreamWriter) -> None:
-        try:
-            writer.close()
-            await writer.wait_closed()
-        except OSError:
-            self._logger.error(
-                'Connection has not been closed to the address (%s, %s)'
-                ' due to an exception below:\n',
-                self._host, self._port,
-                exc_info=True
-            )
-        else:
-            self._logger.debug(
-                'Connection to the address (%s, %s) has been closed.',
-                self._host, self._port
-            )
+        writer.close()
+        await writer.wait_closed()
+
+        self._logger.debug(
+            'Connection to the address (%s, %s) has been closed.',
+            self._host, self._port
+        )
 
     def __repr__(self):
         return f'<AIOClient({self._host}, {self._port}) object at {id(self)}>'
