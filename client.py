@@ -1,14 +1,15 @@
 import queue
+import socket
 import asyncio
 from typing import Optional
 
 from .utils.classes import AIO
-from .utils.functions import get_logger
+from .utils.functions import _get_logger
 from .utils.constants import (
     DEFAULT_SERVER_HOST,
     DEFAULT_SERVER_PORT,
     DEFAULT_ENCODING,
-    DELAY_OF_QUEUE_GET_NOWAIT
+    DELAY_OF_QUEUE_GET_NOWAIT,
 )
 
 
@@ -81,13 +82,14 @@ class AIOClient(AIO):
                 self._host,
                 self._port
             )
-        except OSError:
+        except OSError as e:
             self._logger.error(
                 'Connection has not been established to the address (%s, %s)'
-                ' due to an exception below:\n',
+                ' due to an error below:\n',
                 self._host, self._port,
                 exc_info=True
             )
+            _gracefully_terminate_clientside()
         else:
             self._logger.debug(
                 'Connection has been established to the address (%s, %s).',
@@ -104,7 +106,7 @@ class AIOClient(AIO):
             self._host, self._port
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<AIOClient({self._host}, {self._port}) object at {id(self)}>'
 
 

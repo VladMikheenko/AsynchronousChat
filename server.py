@@ -2,7 +2,7 @@ import asyncio
 from typing import Optional
 
 from .utils.classes import AIO
-from .utils.functions import get_logger
+from .utils.functions import _get_logger
 from .utils.constants import (
     DEFAULT_SERVER_HOST,
     DEFAULT_SERVER_PORT,
@@ -94,7 +94,7 @@ class AIOServer(AIO):
     ) -> None:
         self._write_data(
             writer,
-            'Sorry, server count not identify your IP.'
+            'Sorry, server count not identify your IP. Try to reconnect.'
             .encode(DEFAULT_ENCODING)
         )
 
@@ -106,15 +106,15 @@ class AIOServer(AIO):
         writer: asyncio.StreamWriter,
         ip_address: str
     ) -> None:
+        self._connected_clients.remove(writer)
         writer.close()
         await writer.wait_closed()
-        self._connected_clients.remove(writer)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<AIOServer({self._host}, {self._port}) object at {id(self)}>'
 
 
-async def run_server():
+async def run_server() -> None:
     aioserver = AIOServer()
     asyncio_server = await aioserver.start_server()
 

@@ -3,7 +3,7 @@ import logging
 from typing import Optional
 
 
-def get_logger(
+def _get_logger(
     *,
     name: str,
     prefix: Optional[str] = None,
@@ -16,7 +16,7 @@ def get_logger(
     return adjust_logger(logger=logger, unique_identifier=_)
 
 
-def adjust_logger(
+def _adjust_logger(
     *,
     logger: logging.Logger,
     unique_identifier: str
@@ -36,3 +36,11 @@ def adjust_logger(
         logger.addHandler(handler)
 
     return logger
+
+
+def _gracefully_terminate_serverside():
+    pass
+
+
+def _gracefully_terminate_clientside():
+    pass
