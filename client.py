@@ -1,5 +1,6 @@
 import queue
 import socket
+import signal
 import asyncio
 from typing import Optional
 
@@ -110,6 +111,11 @@ class AIOClient(AIO):
         return f'<AIOClient({self._host}, {self._port}) object at {id(self)}>'
 
 
+def _handle_sigint_signal(signal, frame) -> None:
+    pass
+
+
 if __name__ == '__main__':
+    signal.signal(signal.SIGINT, _handle_sigint_signal)
     aioclient = AIOClient()
     asyncio.run(aioclient.start_client())
