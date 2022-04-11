@@ -3,7 +3,7 @@ import logging
 from typing import Optional
 
 
-def _get_logger(
+def get_logger(
     *,
     name: str,
     prefix: Optional[str] = None,
@@ -13,7 +13,7 @@ def _get_logger(
     logger = logging.getLogger(_)
     logger.setLevel(logging.DEBUG)
 
-    return adjust_logger(logger=logger, unique_identifier=_)
+    return _adjust_logger(logger=logger, unique_identifier=_)
 
 
 def _adjust_logger(

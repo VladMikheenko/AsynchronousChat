@@ -1,8 +1,10 @@
+import signal
 import asyncio
+import contextlib
 from typing import Optional
 
 from .utils.classes import AIO
-from .utils.functions import _get_logger
+from .utils.functions import get_logger
 from .utils.constants import (
     DEFAULT_SERVER_HOST,
     DEFAULT_SERVER_PORT,
@@ -27,20 +29,19 @@ class AIOServer(AIO):
         )
         self._logger.debug('%s has been initialized.', self.__repr__())
 
-    async def start_server(self) -> asyncio.events.AbstractServer:
-        self._asyncio_server = (
+    async def start_server(self) -> None:
+        self._asyncio_server: asyncio.events.AbstractServer = (
             await asyncio.start_server(
                 self._preprocess,
                 self._host,
                 self._port
             )
         )
-
         self._logger.info(
-            '| Server has been started on (%s, %s).'
-            '\n| Ready to accept connections...', self._host, self._port
+            '| Server has been created on (%s, %s).'
+            '\n| Starting accepting connections...', self._host, self._port
         )
-        return self._asyncio_server
+        await asyncio_server.serve_forever()
 
     async def _preprocess(
         self,
@@ -116,11 +117,23 @@ class AIOServer(AIO):
 
 async def run_server() -> None:
     aioserver = AIOServer()
-    asyncio_server = await aioserver.start_server()
+    await aioserver.start_server()
 
-    async with asyncio_server:
-        await asyncio_server.serve_forever()
+
+async def _terminate_execution() -> None:
+    # The server will be closed automatically,
+    # After `run_server` task has been cancelled.
+    for task in asyncio.all_tasks():
+        if task is not asyncio.current_task():
+            task.cancel()
+
+
+def _handle_sigint_signal(signal, frame) -> None:
+    _ = asyncio.create_task(_terminate_execution())
 
 
 if __name__ == '__main__':
-    asyncio.run(run_server())
+    signal.signal(signal.SIGINT, _handle_sigint_signal)
+
+    with contextlib.suppress(asyncio.CancelledError):
+        asyncio.run(run_server())

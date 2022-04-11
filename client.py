@@ -5,7 +5,7 @@ import asyncio
 from typing import Optional
 
 from .utils.classes import AIO
-from .utils.functions import _get_logger
+from .utils.functions import get_logger
 from .utils.constants import (
     DEFAULT_SERVER_HOST,
     DEFAULT_SERVER_PORT,
@@ -24,7 +24,6 @@ class AIOClient(AIO):
         self._port = port
 
         self._queue = queue.Queue()
-        self._event_loop = asyncio.get_event_loop()
         self._logger = get_logger(
             name=self.__class__.__name__.lower(),
             suffix=str(id(self))
@@ -34,7 +33,7 @@ class AIOClient(AIO):
     async def start_client(self) -> None:
         reader, writer = await self._open_connection()
 
-        self._event_loop.run_in_executor(
+        asyncio.get_event_loop().run_in_executor(
             None,
             self._read_and_enqueue_data
         )
