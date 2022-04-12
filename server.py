@@ -1,6 +1,5 @@
 import signal
 import asyncio
-import contextlib
 from typing import Optional
 
 from .utils.classes import AIO
@@ -123,9 +122,15 @@ async def run_server() -> None:
 async def _terminate_execution() -> None:
     # The server will be closed automatically,
     # After `run_server` task has been cancelled.
-    for task in asyncio.all_tasks():
-        if task is not asyncio.current_task():
-            task.cancel()
+    pending_tasks = [
+        task for task in asyncio.all_tasks()
+        if task is not asyncio.current_task()
+    ]
+
+    for task in pending_tasks:
+        task.cancel()
+
+    await asyncio.gather(*pending_tasks, return_exceptions=True)
 
 
 def _handle_sigint_signal(signal, frame) -> None:
@@ -134,6 +139,4 @@ def _handle_sigint_signal(signal, frame) -> None:
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, _handle_sigint_signal)
-
-    with contextlib.suppress(asyncio.CancelledError):
-        asyncio.run(run_server())
+    asyncio.run(run_server())
