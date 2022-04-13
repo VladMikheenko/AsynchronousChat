@@ -1,4 +1,3 @@
-import signal
 import asyncio
 from typing import Optional
 
@@ -40,7 +39,7 @@ class AIOServer(AIO):
             '| Server has been created on (%s, %s).'
             '\n| Starting accepting connections...', self._host, self._port
         )
-        await asyncio_server.serve_forever()
+        await self._asyncio_server.serve_forever()
 
     async def _preprocess(
         self,
@@ -114,29 +113,15 @@ class AIOServer(AIO):
         return f'<AIOServer({self._host}, {self._port}) object at {id(self)}>'
 
 
-async def run_server() -> None:
+async def run() -> None:
     aioserver = AIOServer()
     await aioserver.start_server()
 
 
-async def _terminate_execution() -> None:
-    # The server will be closed automatically,
-    # After `run_server` task has been cancelled.
-    pending_tasks = [
-        task for task in asyncio.all_tasks()
-        if task is not asyncio.current_task()
-    ]
-
-    for task in pending_tasks:
-        task.cancel()
-
-    await asyncio.gather(*pending_tasks, return_exceptions=True)
-
-
-def _handle_sigint_signal(signal, frame) -> None:
-    _ = asyncio.create_task(_terminate_execution())
-
-
 if __name__ == '__main__':
-    signal.signal(signal.SIGINT, _handle_sigint_signal)
-    asyncio.run(run_server())
+    # Developer's note: at this point, I cannot see any clear reason
+    # Why I should define custom signal or exception handler,
+    # Since asyncio.run does all clean up machinery,
+    # Although exit process is a bit ugly,
+    # Since traceback is printed.
+    asyncio.run(run())
