@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 from typing import Optional
 
 from .utils.classes import AIO
@@ -39,7 +40,7 @@ class AIOServer(AIO):
             '| Server has been created on (%s, %s).'
             '\n| Starting accepting connections...', self._host, self._port
         )
-        await self._asyncio_server.serve_forever()
+        return self._asyncio_server
 
     async def _preprocess(
         self,
@@ -114,14 +115,14 @@ class AIOServer(AIO):
 
 
 async def run() -> None:
-    aioserver = AIOServer()
-    await aioserver.start_server()
+    asyncio_server = await AIOServer().start_server()
+
+    async with asyncio_server:
+        await asyncio_server.serve_forever()
 
 
 if __name__ == '__main__':
-    # Developer's note: at this point, I cannot see any clear reason
-    # Why I should define custom signal or exception handler,
-    # Since asyncio.run does all clean up machinery,
-    # Although exit process is a bit ugly,
-    # Since traceback is printed.
-    asyncio.run(run())
+    with contextlib.suppress(KeyboardInterrupt):
+        asyncio.run(run())
+
+    print('| See you later, alligator!')
