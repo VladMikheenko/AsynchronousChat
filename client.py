@@ -1,6 +1,4 @@
 import queue
-import socket
-import signal
 import asyncio
 from typing import Optional
 
@@ -9,7 +7,6 @@ from .utils.functions import get_logger
 from .utils.constants import (
     DEFAULT_SERVER_HOST,
     DEFAULT_SERVER_PORT,
-    DEFAULT_ENCODING,
     DELAY_OF_QUEUE_GET_NOWAIT,
 )
 
@@ -60,7 +57,7 @@ class AIOClient(AIO):
                     writer=writer,
                     data=self._queue.get_nowait()
                 )
-            except queue.Empty: 
+            except queue.Empty:
                 await asyncio.sleep(DELAY_OF_QUEUE_GET_NOWAIT)
             else:
                 self._queue.task_done()
@@ -82,14 +79,13 @@ class AIOClient(AIO):
                 self._host,
                 self._port
             )
-        except OSError as e:
+        except OSError:
             self._logger.error(
                 'Connection has not been established to the address (%s, %s)'
                 ' due to an error below:\n',
                 self._host, self._port,
                 exc_info=True
             )
-            _gracefully_terminate_clientside()
         else:
             self._logger.debug(
                 'Connection has been established to the address (%s, %s).',
@@ -110,5 +106,16 @@ class AIOClient(AIO):
         return f'<AIOClient({self._host}, {self._port}) object at {id(self)}>'
 
 
+async def run() -> None:
+    aioclient = AIOClient()
+
+    task = asyncio.create_task(
+        aioclient.start_client(),
+        name='start-client-task'
+    )
+
+    await task
+
+
 if __name__ == '__main__':
-    asyncio.run(AIOClient().start_client())
+    asyncio.run(run())

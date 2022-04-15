@@ -28,18 +28,20 @@ class AIOServer(AIO):
         )
         self._logger.debug('%s has been initialized.', self.__repr__())
 
-    async def start_server(self) -> None:
-        self._asyncio_server: asyncio.events.AbstractServer = (
+    async def start_server(self) -> asyncio.events.AbstractServer:
+        self._asyncio_server = (
             await asyncio.start_server(
                 self._preprocess,
                 self._host,
                 self._port
             )
         )
+
         self._logger.info(
             '| Server has been created on (%s, %s).'
             '\n| Starting accepting connections...', self._host, self._port
         )
+
         return self._asyncio_server
 
     async def _preprocess(

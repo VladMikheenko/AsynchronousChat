@@ -7,8 +7,8 @@ from .constants import DEFAULT_ENCODING, BYTES_READ_LIMIT
 class AIO:
     """Serves as the backbone of AIOServer and AIOClient.
 
-    May refer to non-existing attributes,
-    so all subclasses must implement them.
+    May refer to non-existing attributes, methods, etc.,
+    so they have to be defined before.
 
     Because of the reason above must not be instantiated directly.
     """
@@ -33,7 +33,8 @@ class AIO:
 
     async def _read_data(
         self,
-        reader: asyncio.StreamReader, limit = BYTES_READ_LIMIT
+        reader: asyncio.StreamReader,
+        limit=BYTES_READ_LIMIT
     ) -> Optional[str]:
         try:
             data = (await reader.read(limit)).decode(DEFAULT_ENCODING)
