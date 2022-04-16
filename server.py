@@ -124,6 +124,8 @@ async def run() -> None:
 
 
 if __name__ == '__main__':
+    # Although the exception will not be propagated at the top level,
+    # asyncio.run will do all required clean up actions.
     with contextlib.suppress(KeyboardInterrupt):
         asyncio.run(run())
 

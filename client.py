@@ -1,4 +1,5 @@
 import queue
+import signal
 import asyncio
 from typing import Optional
 
@@ -39,7 +40,6 @@ class AIOClient(AIO):
             self._receive_data(reader),
             return_exceptions=True
         )
-        await self._close_connection(writer=writer)
 
     def _read_and_enqueue_data(self) -> None:
         while True:
@@ -114,8 +114,27 @@ async def run() -> None:
         name='start-client-task'
     )
 
-    await task
+    await is_termination_required.wait()
+    await _terminate_client()
+
+
+async def _terminate_client() -> None:
+    tasks_to_cancel = [
+        task for task in asyncio.all_tasks()
+        if task is not asyncio.current_task()
+    ]
+
+    for task in tasks_to_cancel:
+        task.cancel()
+
+    await asyncio.gather(*tasks_to_cancel, return_exception=True)
+
+
+def _handle_sigint_signal(signal, frame) -> None:
+    is_termination_required.set()
 
 
 if __name__ == '__main__':
+    is_termination_required = asyncio.Event()
+    signal.signal(signal.SIGINT, _handle_sigint_signal)
     asyncio.run(run())
