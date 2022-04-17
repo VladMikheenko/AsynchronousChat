@@ -1,6 +1,8 @@
 import queue
 import signal
 import asyncio
+import threading
+import contextlib
 from typing import Optional
 
 from .utils.classes import AIO
@@ -29,20 +31,29 @@ class AIOClient(AIO):
         self._logger.debug('%s has been initialized.', self.__repr__())
 
     async def start_client(self) -> None:
-        reader, writer = await self._open_connection()
+        connection_options = await self._open_connection()
+
+        if not connection_options:
+            return
+
+        reader, writer = connection_options
 
         asyncio.get_event_loop().run_in_executor(
             None,
             self._read_and_enqueue_data
         )
-        await asyncio.gather(
+
+        asyncio.gather(
             self._send_data(writer),
             self._receive_data(reader),
             return_exceptions=True
         )
 
+        await _is_termination_required.wait()
+        await self._close_connection(writer)
+
     def _read_and_enqueue_data(self) -> None:
-        while True:
+        while not _is_termination_required.is_set():
             data = input()
 
             if not data:
@@ -79,12 +90,11 @@ class AIOClient(AIO):
                 self._host,
                 self._port
             )
-        except OSError:
+        except OSError as e:
             self._logger.error(
                 'Connection has not been established to the address (%s, %s)'
-                ' due to an error below:\n',
+                f' due to an error below:\n{str(e)}',
                 self._host, self._port,
-                exc_info=True
             )
         else:
             self._logger.debug(
@@ -114,27 +124,14 @@ async def run() -> None:
         name='start-client-task'
     )
 
-    await is_termination_required.wait()
-    await _terminate_client()
-
-
-async def _terminate_client() -> None:
-    tasks_to_cancel = [
-        task for task in asyncio.all_tasks()
-        if task is not asyncio.current_task()
-    ]
-
-    for task in tasks_to_cancel:
-        task.cancel()
-
-    await asyncio.gather(*tasks_to_cancel, return_exception=True)
+    await task
 
 
 def _handle_sigint_signal(signal, frame) -> None:
-    is_termination_required.set()
+    _is_termination_required.set()
 
 
 if __name__ == '__main__':
-    is_termination_required = asyncio.Event()
+    _is_termination_required = asyncio.Event()
     signal.signal(signal.SIGINT, _handle_sigint_signal)
     asyncio.run(run())
