@@ -2,7 +2,7 @@ import queue
 import signal
 import asyncio
 import threading
-import contextlib
+import contextvars
 from typing import Optional
 
 from .utils.classes import AIO
@@ -49,11 +49,11 @@ class AIOClient(AIO):
             return_exceptions=True
         )
 
-        await _is_termination_required.wait()
+        await _is_termination_required.get().wait()
         await self._close_connection(writer)
 
     def _read_and_enqueue_data(self) -> None:
-        while not _is_termination_required.is_set():
+        while not _is_termination_required.get().is_set():
             data = input()
 
             if not data:
@@ -117,6 +117,14 @@ class AIOClient(AIO):
 
 
 async def run() -> None:
+    _is_termination_required: contextvars.ContextVar[asyncio.Event] = (
+        contextvars.ContextVar(
+            '_is_termination_required'
+        )
+    )
+    _is_termination_required.set(asyncio.Event())
+
+    signal.signal(signal.SIGINT, _handle_sigint_signal)
     aioclient = AIOClient()
 
     task = asyncio.create_task(
@@ -128,10 +136,8 @@ async def run() -> None:
 
 
 def _handle_sigint_signal(signal, frame) -> None:
-    _is_termination_required.set()
+    _is_termination_required.get().set()
 
 
 if __name__ == '__main__':
-    _is_termination_required = asyncio.Event()
-    signal.signal(signal.SIGINT, _handle_sigint_signal)
     asyncio.run(run())
