@@ -2,7 +2,6 @@ import queue
 import signal
 import asyncio
 import threading
-import contextvars
 from typing import Optional
 
 from .utils.classes import AIO
@@ -38,10 +37,10 @@ class AIOClient(AIO):
 
         reader, writer = connection_options
 
-        asyncio.get_event_loop().run_in_executor(
-            None,
-            self._read_and_enqueue_data
-        )
+        threading.Thread(
+            target=self._read_and_enqueue_data,
+            daemon=True
+        ).start()
 
         asyncio.gather(
             self._send_data(writer),
@@ -49,17 +48,17 @@ class AIOClient(AIO):
             return_exceptions=True
         )
 
-        await _is_termination_required.get().wait()
+        await _is_termination_required.wait()
         await self._close_connection(writer)
 
     def _read_and_enqueue_data(self) -> None:
-        while not _is_termination_required.get().is_set():
+        while True:
             data = input()
 
             if not data:
                 continue
 
-            self._queue.put(data)
+            self._queue.put_nowait(data)
 
     async def _send_data(self, writer: asyncio.StreamWriter) -> None:
         while True:
@@ -117,26 +116,17 @@ class AIOClient(AIO):
 
 
 async def run() -> None:
-    _is_termination_required: contextvars.ContextVar[asyncio.Event] = (
-        contextvars.ContextVar(
-            '_is_termination_required'
-        )
-    )
-    _is_termination_required.set(asyncio.Event())
+    global _is_termination_required
+    _is_termination_required = asyncio.Event()
 
     signal.signal(signal.SIGINT, _handle_sigint_signal)
     aioclient = AIOClient()
 
-    task = asyncio.create_task(
-        aioclient.start_client(),
-        name='start-client-task'
-    )
-
-    await task
+    await aioclient.start_client()
 
 
 def _handle_sigint_signal(signal, frame) -> None:
-    _is_termination_required.get().set()
+    _is_termination_required.set()
 
 
 if __name__ == '__main__':
