@@ -1,3 +1,4 @@
+import sys
 import queue
 import signal
 import asyncio
@@ -41,7 +42,6 @@ class AIOClient(AIO):
             target=self._read_and_enqueue_data,
             daemon=True
         ).start()
-
         asyncio.gather(
             self._send_data(writer),
             self._receive_data(reader),
@@ -52,8 +52,16 @@ class AIOClient(AIO):
         await self._close_connection(writer)
 
     def _read_and_enqueue_data(self) -> None:
+        """Reads data from sys.stdin and puts it into a queue.
+
+        Warning: the function has to be run by a daemon thread,
+        But not an executor, as the latter waits until the function completes.
+
+        Warning: sys.stdin guarantees to not cause a warning upon exit,
+        Opposed to input built-in function, which acquires a lock.
+        """
         while True:
-            data = input()
+            data = sys.stdin.readline()
 
             if not data:
                 continue
