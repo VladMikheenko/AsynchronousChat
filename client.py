@@ -10,6 +10,7 @@ from .utils.functions import get_logger
 from .utils.constants import (
     DEFAULT_SERVER_HOST,
     DEFAULT_SERVER_PORT,
+    IGNORABLE_STRINGS,
     DELAY_OF_QUEUE_GET_NOWAIT,
 )
 
@@ -23,7 +24,7 @@ class AIOClient(AIO):
         self._host = host
         self._port = port
 
-        self._queue = queue.Queue()
+        self._queue: queue.Queue[str] = queue.Queue()
         self._logger = get_logger(
             name=self.__class__.__name__.lower(),
             suffix=str(id(self))
@@ -38,6 +39,7 @@ class AIOClient(AIO):
 
         reader, writer = connection_options
 
+        # Warning: [-> see self._read_and_enqueue_data's documentation].
         threading.Thread(
             target=self._read_and_enqueue_data,
             daemon=True
@@ -63,7 +65,7 @@ class AIOClient(AIO):
         while True:
             data = sys.stdin.readline()
 
-            if not data:
+            if data in IGNORABLE_STRINGS:
                 continue
 
             self._queue.put_nowait(data)

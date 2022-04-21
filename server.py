@@ -52,7 +52,8 @@ class AIOServer(AIO):
         address = writer.get_extra_info('peername')
 
         if not address:
-            self._close_connection_to_client_on_getpeername_error(writer)
+            await self._close_connection_to_client_on_getpeername_error(writer)
+            return
 
         ip_address, *_ = address
         self._connected_clients.append(writer)
@@ -117,6 +118,7 @@ class AIOServer(AIO):
 
 
 async def run() -> None:
+    # TODO: Handle case if server closes prior to client.
     asyncio_server = await AIOServer().start_server()
 
     async with asyncio_server:
