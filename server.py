@@ -118,7 +118,6 @@ class AIOServer(AIO):
 
 
 async def run() -> None:
-    # TODO: Handle case if server closes prior to client.
     asyncio_server = await AIOServer().start_server()
 
     async with asyncio_server:
