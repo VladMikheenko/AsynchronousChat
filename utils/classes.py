@@ -8,7 +8,7 @@ class AIO:
     """Serves as the backbone of AIOServer and AIOClient.
 
     May refer to non-existing attributes, methods, etc.,
-    so they have to be defined before.
+    so they have to be defined elsewhere.
 
     Because of the reason above must not be instantiated directly.
     """
@@ -18,7 +18,7 @@ class AIO:
         data: str
     ) -> None:
         try:
-            writer.write(data.encode(encoding=DEFAULT_ENCODING))
+            writer.write(data.strip().encode(encoding=DEFAULT_ENCODING))
             await writer.drain()
         except OSError:
             self._logger.error(

@@ -110,6 +110,9 @@ class AIOClient(AIO):
                 'Connection has been established to the address (%s, %s).',
                 self._host, self._port
             )
+            self._logger.info(
+                '| You have connected successfully; type something so everyone can see!'
+            )
             return reader, writer
 
     async def _close_connection(self, writer: asyncio.StreamWriter) -> None:
