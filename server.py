@@ -117,7 +117,7 @@ class AIOServer(AIO):
         return f'<AIOServer({self._host}, {self._port}) object at {id(self)}>'
 
 
-async def run() -> None:
+async def main() -> None:
     asyncio_server = await AIOServer().start_server()
 
     async with asyncio_server:
@@ -129,6 +129,6 @@ if __name__ == '__main__':
     # asyncio.run will do all required clean up actions,
     # So program will gracefully terminate.
     with contextlib.suppress(KeyboardInterrupt):
-        asyncio.run(run())
+        asyncio.run(main())
 
     print('| See you later, alligator!')

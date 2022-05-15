@@ -13,8 +13,17 @@ python -m acc.server
 </pre>
 *In another terminal:*
 <pre>
-python acc.client
+python -m acc.client
 </pre>
 
 Attachment №1:
 <pre>git clone https://github.com/VladMikheenko/asynchronous-chat.git</pre>
+
+## TODO
+? Do logging and printing in a separate thread, so an event loop will not be blocked;<br>
+Extend amount of unit tests;<br>
+Log messages should be more informative.
+
+## Credentials
+https://www.roguelynn.com/words/asyncio-we-did-it-wrong/ - awesome article about asyncio which sheds light on non-trivial challenges that one can encounter;<br>
+https://pymotw.com/3/asyncio/io_coroutine.html - topic on pyMOTW which covers asyncio streams.

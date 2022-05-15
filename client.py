@@ -34,7 +34,7 @@ class AIOClient(AIO):
     async def start_client(self) -> None:
         connection_options = await self._open_connection()
 
-        if not connection_options:
+        if connection_options is None:
             return
 
         reader, writer = connection_options
@@ -128,7 +128,7 @@ class AIOClient(AIO):
         return f'<AIOClient({self._host}, {self._port}) object at {id(self)}>'
 
 
-async def run() -> None:
+async def main() -> None:
     global _is_termination_required
     _is_termination_required = asyncio.Event()
 
@@ -143,4 +143,4 @@ def _handle_sigint_signal(signal, frame) -> None:
 
 
 if __name__ == '__main__':
-    asyncio.run(run())
+    asyncio.run(main())
