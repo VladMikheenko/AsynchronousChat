@@ -9,15 +9,15 @@ Obviously, client <-> server model was used, where there is only one server, whi
 
 Once you have installed the project, you can start the server and create a client:
 <pre>
-python -m acc.server
+python -m AsynchronousChat.server
 </pre>
 *In another terminal:*
 <pre>
-python -m acc.client
+python -m AsynchronousChat.client
 </pre>
 
 Attachment №1:
-<pre>git clone https://github.com/VladMikheenko/asynchronous-chat.git</pre>
+<pre>git clone https://github.com/VladMikheenko/AsynchronousChat.git</pre>
 
 ## TODO
 ? Do logging and printing in a separate thread, so an event loop will not be blocked;<br>
