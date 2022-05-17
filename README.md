@@ -22,7 +22,8 @@ Attachment №1:
 ## TODO
 ? Do logging and printing in a separate thread, so an event loop will not be blocked;<br>
 Extend amount of unit tests;<br>
-Log messages should be more informative.
+Log messages should be more informative;<br>
+Handle connections if server closes before clients.
 
 ## Credentials
 https://www.roguelynn.com/words/asyncio-we-did-it-wrong/ - awesome article about asyncio which sheds light on non-trivial challenges that one can encounter;<br>
